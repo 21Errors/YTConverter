@@ -6,7 +6,7 @@ A simple and powerful **stand-alone YouTube playlist converter** for Android. Co
 
 ## Download
 
-You can download the latest APK from the [Releases page](https://github.com/21Errors/YTConverter/releases/download/v1.0.0/app-release.apk) on GitHub.
+You can download the latest APK from the [Releases page](https://github.com/21Errors/YTConverter/releases/download/v1.0.0/YTConverter.apk) on GitHub.
 
 ---
 
