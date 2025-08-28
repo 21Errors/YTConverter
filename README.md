@@ -11,11 +11,10 @@ You can download the latest APK from the [Releases page](https://github.com/21Er
 ---
 
 ## Screenshots
-<img width="266" height="576" alt="playlist" src="https://github.com/user-attachments/assets/bec263a9-af28-4c99-8519-b0bae57b6f2d" />
-<img width="268" height="577" alt="playlistconverting" src="https://github.com/user-attachments/assets/d7ea12b2-fc10-49a9-abec-b45e246a41f5" />
 <img width="263" height="575" alt="converter" src="https://github.com/user-attachments/assets/79068f32-8fee-4af6-b451-8253e1e9f06e" />
 <img width="271" height="572" alt="converted" src="https://github.com/user-attachments/assets/fe57408f-ee1b-4fdf-9cad-7a96bedb0283" />
-
+<img width="266" height="576" alt="playlist" src="https://github.com/user-attachments/assets/bec263a9-af28-4c99-8519-b0bae57b6f2d" />
+<img width="268" height="577" alt="playlistconverting" src="https://github.com/user-attachments/assets/d7ea12b2-fc10-49a9-abec-b45e246a41f5" />
 
 ---
 
