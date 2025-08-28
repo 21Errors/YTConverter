@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/bg_blue">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="YouTube to MP3 Converter"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:gravity="center"
+        android:layout_marginBottom="20dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enter YouTube URL or direct media URL below:"
+        android:textSize="16sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/youtubeUrlInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="https://www.youtube.com/watch?v=..."
+        android:inputType="textUri"
+        android:padding="12dp"
+        android:background="#81D4FA"
+        android:layout_marginBottom="16dp"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/convertButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Convert to MP3"
+        android:textSize="18sp"
+        android:layout_marginBottom="20dp"
+        android:backgroundTint="#D4AF37"
+        android:textColor="@android:color/white"
+        android:padding="16dp" />
+
+    <Button
+        android:id="@+id/openPlaylistConverterButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Convert Playlist"
+        android:textSize="18sp"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#D4AF37"
+        android:textColor="@android:color/white"
+        android:padding="16dp" />
+
+
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Status:"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_blue"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="Ready. Enter a URL and click Convert."
+            android:textColor="#444444"
+            android:textSize="14sp" />
+
+    </ScrollView>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💡 Tip: Converted files are saved to Music folder"
+        android:textSize="12sp"
+        android:textColor="#888888"
+        android:gravity="center"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>

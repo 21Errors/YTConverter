@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Light amber → peach → deep roast -->
+    <gradient
+        android:angle="270"
+        android:startColor="#81D4FA"
+        android:centerColor="#0288D1"
+        android:endColor="#01579B"
+        android:type="linear" />
+
+
+</shape>
