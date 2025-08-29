@@ -37,3 +37,12 @@ You can download the latest APK from the [Releases page](https://github.com/21Er
 5. Check the queue to see progress or cancel any item/all conversions.
 6. Converted MP3 files are saved to your Music folder.
 
+## License
+
+This project is dual-licensed:
+
+- [Apache License 2.0](./LICENSE.Apache-2.0)
+- [GNU GPL v3.0 or later](./LICENSE.GPL-3.0)
+
+You may choose either license when using this project.
+
