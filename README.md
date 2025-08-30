@@ -39,10 +39,7 @@ You can download the latest APK from the [Releases page](https://github.com/21Er
 
 ## License
 
-This project is dual-licensed:
+This project is licensed with :
 
-- [Apache License 2.0](./LICENSE.Apache-2.0)
 - [GNU GPL v3.0 or later](./LICENSE.GPL-3.0)
-
-You may choose either license when using this project.
 
