@@ -1,3 +1,5 @@
+#Update coming soon, with smaller app size, faster video converting and more !! I've just been a bit busy but trust me, ITS COMING !! 
+
 # YT Playlist Converter 🎵
 
 A simple and powerful **stand-alone YouTube playlist converter** for Android. Convert YouTube videos and entire playlists to MP3 quickly and easily.
