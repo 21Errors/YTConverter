@@ -1,21 +1,29 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Keep Rhino classes and suppress warnings about missing java.beans classes
+-dontwarn java.beans.**
+-dontwarn javax.script.**
+-dontwarn org.mozilla.javascript.**
+-keep class org.mozilla.javascript.** { *; }
+```
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+This tells R8 (Android's code optimizer) to:
+1. Not warn about the missing Java Desktop API classes
+2. Keep all Rhino classes so they work at runtime
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+Your `build.gradle` already has minification enabled with ProGuard, so these rules will be applied during the build.
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+**If that doesn't work**, try being more aggressive and add this to `proguard-rules.pro`:
+```
+-dontwarn java.beans.**
+-dontwarn javax.script.**
+-dontwarn org.mozilla.javascript.**
+-dontwarn org.mozilla.**
+-keep class org.mozilla.javascript.** { *; }
+-keep class org.mozilla.** { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+```
+
+After adding these rules, clean and rebuild your project:
+```
+./gradlew clean build

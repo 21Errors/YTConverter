@@ -17,8 +17,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.arthenica.mobileffmpeg.Config
-import com.arthenica.mobileffmpeg.FFmpeg
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,7 +25,9 @@ import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.downloader.Downloader
 import org.schabi.newpipe.extractor.stream.StreamInfo
-import java.io.File
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,7 +37,6 @@ class YTConverterActivity : AppCompatActivity() {
     private lateinit var convertButton: Button
     private lateinit var statusText: TextView
     private val STORAGE_PERMISSION_CODE = 1001
-    private var lastCommandOutput = ""
 
     // Add coroutine scope for managing background tasks
     private val mainScope = CoroutineScope(Dispatchers.Main + Job())
@@ -111,19 +110,6 @@ class YTConverterActivity : AppCompatActivity() {
         convertButton = findViewById(R.id.convertButton)
         statusText = findViewById(R.id.statusText)
 
-        // FFmpeg log callback
-        Config.enableLogCallback { message ->
-            lastCommandOutput += message.text + "\n"
-            runOnUiThread {
-                if (message.text.contains("error", true) ||
-                    message.text.contains("failed", true) ||
-                    message.text.contains("invalid", true)
-                ) {
-                    statusText.text = "Status: ${message.text}"
-                }
-            }
-        }
-
         convertButton.setOnClickListener {
             if (checkStoragePermissions()) {
                 processUrl()
@@ -137,7 +123,6 @@ class YTConverterActivity : AppCompatActivity() {
             val intent = Intent(this, PlaylistConverterActivity::class.java)
             startActivity(intent)
         }
-
 
         statusText.text = "Status: Ready. Enter a URL and click Convert."
     }
@@ -209,7 +194,7 @@ class YTConverterActivity : AppCompatActivity() {
             }
             url.startsWith("http") -> {
                 statusText.text = "Status: Processing direct URL..."
-                convertToMp3(url, "DirectAudio")
+                downloadAudio(url, "DirectAudio", "audio")
             }
             else -> {
                 Toast.makeText(this, "Please enter a valid URL", Toast.LENGTH_SHORT).show()
@@ -238,16 +223,42 @@ class YTConverterActivity : AppCompatActivity() {
 
                 // Back on main thread to update UI
                 if (result.isNotEmpty()) {
-                    val bestAudio = result.maxByOrNull { it.bitrate }
-                    if (bestAudio != null) {
+                    // Find Opus stream first, then AAC fallback
+                    val selectedAudio = result.firstOrNull {
+                        it.format?.mimeType?.contains("opus", ignoreCase = true) == true
+                    } ?: result.firstOrNull {
+                        it.format?.mimeType?.contains("aac", ignoreCase = true) == true ||
+                                it.format?.mimeType?.contains("mp4a", ignoreCase = true) == true
+                    } ?: result.maxByOrNull { it.bitrate }
+
+                    // Replace this part in your extractYouTubeUrl method:
+
+                    // Replace this part in your extractYouTubeUrl method:
+
+                    val audioFormat = when {
+                        selectedAudio?.format?.mimeType?.contains("opus", ignoreCase = true) == true -> "opus"
+                        selectedAudio?.format?.mimeType?.contains("aac", ignoreCase = true) == true ||
+                                selectedAudio?.format?.mimeType?.contains("mp4a", ignoreCase = true) == true -> "aac"
+                        selectedAudio?.format?.mimeType?.contains("mp3", ignoreCase = true) == true -> "mp3"
+                        selectedAudio?.format?.mimeType?.contains("mpeg", ignoreCase = true) == true -> "mp3"
+                        selectedAudio?.format?.mimeType?.contains("webm", ignoreCase = true) == true -> "opus" // Treat WebM as Opus
+                        selectedAudio?.format?.mimeType?.contains("ogg", ignoreCase = true) == true -> "ogg"
+                        else -> {
+                            Log.w("YTConverter", "Unknown MIME type: ${selectedAudio?.format?.mimeType}, defaulting to mp3")
+                            "mp3" // Changed from "audio" to "mp3"
+                        }
+                    }
+
+                    if (selectedAudio != null) {
                         val streamInfo = withContext(Dispatchers.IO) {
                             StreamInfo.getInfo(youtubeUrl)
                         }
                         val title = streamInfo.name ?: "Unknown"
-                        statusText.text = "Status: Found \"$title\", converting..."
+                        statusText.text = "Status: Found \"$title\", downloading..."
                         Log.d("NewPipe", "Extracting: $title")
-                        Log.d("NewPipe", "Audio URL: ${bestAudio.url}")
-                        bestAudio.url?.let { convertToMp3(it, title) }
+                        Log.d("NewPipe", "Audio URL: ${selectedAudio.url}")
+                        Log.d("NewPipe", "Audio Format: $audioFormat")
+                        selectedAudio.url?.let { downloadAudio(it, title, audioFormat) }
                     } else {
                         statusText.text = "Status: No audio stream found"
                         Toast.makeText(
@@ -278,7 +289,7 @@ class YTConverterActivity : AppCompatActivity() {
         }
     }
 
-    private fun convertToMp3(url: String, title: String? = null) {
+    private fun downloadAudio(url: String, title: String? = null, format: String = "mp3") {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
         val cleanTitle = title?.let {
             it.replace(Regex("[^A-Za-z0-9 \\-_]"), "")
@@ -288,6 +299,26 @@ class YTConverterActivity : AppCompatActivity() {
         }
         val fileName = if (!cleanTitle.isNullOrEmpty()) "${cleanTitle}_$timeStamp" else "Audio_$timeStamp"
 
+        // Fixed extension and MIME type mapping - only MediaStore-supported MIME types
+        val (extension, mimeType) = when (format.lowercase().trim()) {
+            "opus" -> ".opus" to "audio/ogg"
+            "aac", "mp4a" -> ".m4a" to "audio/mp4"
+            "mp3", "mpeg" -> ".mp3" to "audio/mpeg"
+            "webm" -> {
+                // WebM audio is not supported by MediaStore, treat as OGG
+                Log.w("YTConverter", "WebM format detected, treating as OGG for MediaStore compatibility")
+                ".ogg" to "audio/ogg"
+            }
+            "m4a" -> ".m4a" to "audio/mp4"
+            "ogg" -> ".ogg" to "audio/ogg"
+            else -> {
+                Log.w("YTConverter", "Unknown format: $format, defaulting to MP3")
+                ".mp3" to "audio/mpeg" // Safe fallback - never use "audio/*"
+            }
+        }
+
+        Log.d("YTConverter", "Format: $format -> Extension: $extension, MIME: $mimeType")
+
         val resolver = contentResolver
         var outputUri: android.net.Uri? = null
         var tempFile: File? = null
@@ -296,45 +327,43 @@ class YTConverterActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Android 10+ : insert into MediaStore first
                 val values = ContentValues().apply {
-                    put(MediaStore.Audio.Media.DISPLAY_NAME, "$fileName.mp3")
-                    put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
+                    put(MediaStore.Audio.Media.DISPLAY_NAME, "$fileName$extension")
+                    put(MediaStore.Audio.Media.MIME_TYPE, mimeType) // Now using specific MIME type
                     put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC)
                     put(MediaStore.Audio.Media.IS_PENDING, 1)
                 }
 
                 outputUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
                 if (outputUri == null) {
-                    Toast.makeText(this, "❌ Failed to create MediaStore entry", Toast.LENGTH_LONG).show()
-                    statusText.text = "Status: ❌ Failed to create MediaStore entry"
+                    Toast.makeText(this, "Failed to create MediaStore entry", Toast.LENGTH_LONG).show()
+                    statusText.text = "Status: Failed to create MediaStore entry"
                     return
                 }
 
-                // Use temporary file to run FFmpeg
-                tempFile = File(cacheDir, "$fileName.mp3")
+                // Use temporary file for download
+                tempFile = File(cacheDir, "$fileName$extension")
             } else {
                 // Android 9 and below : public Music folder
                 val musicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
                 musicDir.mkdirs()
-                tempFile = File(musicDir, "$fileName.mp3")
+                tempFile = File(musicDir, "$fileName$extension")
             }
 
-            lastCommandOutput = ""
-            val command = arrayOf(
-                "-i", url,
-                "-vn",
-                "-acodec", "libmp3lame",
-                "-ab", "192k",
-                "-ar", "44100",
-                "-y",
-                tempFile.absolutePath
-            )
-
-            statusText.text = "Status: Converting to MP3..."
+            statusText.text = "Status: Starting download..."
 
             mainScope.launch {
-                val rc = withContext(Dispatchers.IO) { FFmpeg.execute(command) }
+                val success = withContext(Dispatchers.IO) {
+                    downloadAudioStreamWithProgress(url, tempFile) { progress ->
+                        // Update UI on main thread
+                        runOnUiThread {
+                            statusText.text = "Status: Downloading... $progress%"
+                        }
+                    }
+                }
 
-                if (rc == 0) {
+                if (success) {
+                    statusText.text = "Status: Saving file..."
+
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && outputUri != null) {
                         // Copy temp file to MediaStore
                         resolver.openOutputStream(outputUri).use { out ->
@@ -349,30 +378,118 @@ class YTConverterActivity : AppCompatActivity() {
                         MediaScannerConnection.scanFile(
                             this@YTConverterActivity,
                             arrayOf(tempFile.absolutePath),
-                            arrayOf("audio/mpeg"),
+                            arrayOf(mimeType),
                             null
                         )
                     }
 
-                    Toast.makeText(this@YTConverterActivity, "✅ MP3 saved successfully!", Toast.LENGTH_LONG).show()
-                    statusText.text = "Status: ✅ Success! Saved as $fileName.mp3"
-                    Log.i("FFmpeg", "Conversion successful. File: ${tempFile.absolutePath}")
+                    Toast.makeText(this@YTConverterActivity, "Audio saved successfully!", Toast.LENGTH_LONG).show()
+                    statusText.text = "Status: Success! Saved as $fileName$extension"
+                    Log.i("Download", "Download successful. File: ${tempFile.absolutePath}")
                 } else {
-                    Toast.makeText(this@YTConverterActivity, "❌ Conversion failed. RC=$rc", Toast.LENGTH_LONG).show()
-                    statusText.text = "Status: ❌ Failed (RC=$rc). Check logs."
-                    Log.e("FFmpeg", "Conversion failed with RC=$rc")
-                    Log.e("FFmpeg", "Error output: $lastCommandOutput")
+                    Toast.makeText(this@YTConverterActivity, "Download failed", Toast.LENGTH_LONG).show()
+                    statusText.text = "Status: Download failed"
+                    Log.e("Download", "Download failed")
                 }
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show()
-            statusText.text = "Status: ❌ Exception occurred"
-            Log.e("FFmpeg", "Exception during conversion", e)
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            statusText.text = "Status: Exception occurred"
+            Log.e("Download", "Exception during download", e)
             tempFile?.delete()
             outputUri?.let { resolver.delete(it, null, null) }
         }
     }
 
+    private fun downloadAudioStreamWithProgress(
+        url: String,
+        outputFile: File,
+        onProgress: (Int) -> Unit
+    ): Boolean {
+        return try {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.connectTimeout = 30000
+            connection.readTimeout = 30000
+            connection.setRequestProperty(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            )
+            connection.connect()
+
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val totalSize = connection.contentLength
+                var downloadedSize = 0
+                var lastProgress = 0
+
+                BufferedInputStream(connection.inputStream).use { input ->
+                    FileOutputStream(outputFile).use { output ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            downloadedSize += bytesRead
+
+                            if (totalSize > 0) {
+                                val progress = (downloadedSize * 100) / totalSize
+                                if (progress != lastProgress) {
+                                    onProgress(progress)
+                                    lastProgress = progress
+                                }
+                            }
+                        }
+
+                        // Make sure we always report 100% at the end
+                        if (totalSize > 0 && lastProgress < 100) {
+                            onProgress(100)
+                        }
+                    }
+                }
+
+                connection.disconnect()
+                true
+            } else {
+                Log.e("Download", "HTTP Error: ${connection.responseCode}")
+                connection.disconnect()
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("Download", "Failed to download audio stream", e)
+            false
+        }
+    }
+
+
+    private fun downloadAudioStream(url: String, outputFile: File): Boolean {
+        return try {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.connectTimeout = 30000
+            connection.readTimeout = 30000
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            connection.connect()
+
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedInputStream(connection.inputStream).use { input ->
+                    FileOutputStream(outputFile).use { output ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                        }
+                    }
+                }
+                connection.disconnect()
+                true
+            } else {
+                Log.e("Download", "HTTP Error: ${connection.responseCode}")
+                connection.disconnect()
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("Download", "Failed to download audio stream", e)
+            false
+        }
+    }
 
     override fun onDestroy() {
         super.onDestroy()

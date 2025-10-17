@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("kotlin-kapt")
 }
 
 android {
@@ -16,14 +15,14 @@ android {
         applicationId = "com.example.ytconverter"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -40,12 +39,7 @@ android {
         jvmTarget = "11"
     }
 
-    packaging {
-        resources {
-            pickFirsts.add("**/libc++_shared.so")
-            pickFirsts.add("**/libjsc.so")
-        }
-    }
+    // Removed FFmpeg-specific packaging configurations
 }
 
 configurations.all {
@@ -62,7 +56,12 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    implementation(files("libs/mobile-ffmpeg-full-gpl-4.4.LTS.aar"))
+    // Removed FFmpeg dependency - this is the main size reduction!
+    // implementation(files("libs/mobile-ffmpeg-full-gpl-4.4.LTS.aar"))
+
+
+
+
     implementation("com.github.TeamNewPipe:nanojson:e9d656ddb49a412a5a0a5d5ef20ca7ef09549996") {
         exclude(group = "com.intellij", module = "annotations")
     }
